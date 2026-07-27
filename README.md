@@ -1,50 +1,101 @@
 # School Schedules Database
 
-**An almanac of how many students are in session in each US district — an AI-agent-ready API.**
+**Day-level US school calendars — is school in session, for every district, on any date.**
 
-Observed where we collect it, imputed where we don't, and *every value is labeled* so your models can trust the feature.
-
----
-
-### Try it — one call, public sample
-
-```bash
-curl https://schoolschedulesdatabase.com/sample.json
-```
-
-```json
-{
-  "district": "Houston ISD",
-  "nces_id": "4823640",
-  "state": "TX",
-  "days": [
-    { "date": "2026-08-24", "in_session": true,  "students_in_session": 183460, "source": "official_calendar_pdf_verified" },
-    { "date": "2026-11-26", "in_session": false, "students_in_session": 0, "break_name": "Thanksgiving", "source": "official_calendar_pdf_verified" },
-    { "date": "2027-03-15", "in_session": false, "students_in_session": 0, "break_name": "Spring Break", "source": "imputation", "estimated": true }
-  ]
-}
-```
+Observed where we collect it, estimated where we can't, and *every row carries the method it
+came from* so your models know how much to trust the feature.
 
 ---
 
 ### What it is
 
-- **Day-level, every US district** — is school in session, and how many students, for any date.
-- **A historical archive + the upcoming year** — not a single snapshot.
-- **Honest by design** — each value carries its `source`; imputed values are flagged `estimated: true`. Never guessed silently.
-- **AI-agent-ready** — clean JSON, stable schema, one call. Drop it into any pipeline that needs to know when kids are in school.
+- **Day-level, every US district** — ~12,000 districts across 49 states + DC, one row per
+  district per day.
+- **Three school years** — 2024–25 through 2026–27, accumulating. School calendars vanish from
+  the web when the year ends; this is the archive of what they said.
+- **Honest by design** — every row carries `source_method` and a `confidence` score. Estimates
+  are never presented as observations.
+- **Built for pipelines** — clean JSON and CSV, stable schema, NCES IDs on every row so it joins
+  straight onto Census, enrollment, or your own geodata.
 
 ### Who it's for
 
-Data scientists and AI agents building anything sensitive to the school calendar — demand forecasting, traffic and mobility models, staffing, retail, energy, public health.
+Data teams who need a school-calendar signal: demand forecasting, traffic and mobility models,
+staffing, retail, energy, public health.
 
 ---
+
+### Try it — free sample, no key
+
+```bash
+curl https://api.hazeydata.ai/ssd/v1/sample/districts
+```
+
+Returns the 100 largest districts with their IDs, states and enrollment. This is the district
+index — calendar days need a key.
+
+### A calendar row
+
+```bash
+curl -H "Authorization: Bearer ssd_live_..." \
+  "https://api.hazeydata.ai/ssd/v1/days?district_id=TX_4823640&school_year=2026-2027"
+```
+
+```json
+{
+  "district_id": "TX_4823640",
+  "district_name": "HOUSTON ISD",
+  "state": "TX",
+  "enrollment": 184109,
+  "date": "2027-03-08",
+  "school_year": "2026-2027",
+  "is_in_session": 0,
+  "day_type": "BREAK",
+  "break_name": "Spring Recess",
+  "confidence": 0.98,
+  "source_method": "official_calendar_pdf_verified"
+}
+```
+
+District IDs are `{STATE}_{NCES_ID}`. `is_in_session` is a number from 0 to 1 — half days are
+`0.5` — so students in session is `enrollment × is_in_session`.
+
+---
+
+### Telling observed from estimated
+
+**There is no `estimated` boolean.** Derive it from `source_method`:
+
+| `source_method` | Meaning |
+|---|---|
+| `observed` · `official_calendar_pdf_verified` · `r1_extract_driver` · `human_anchor_email` | Read from the district's own published calendar |
+| `deterministic` | Derived by rule — weekends and fixed holidays |
+| `legacy` | Carried forward from an earlier collection |
+| `inferred` · `state_median_imputation` | **Estimated.** Treat as a guess and filter on `confidence` |
+
+Most 2026–27 dates are currently estimated. That is stated plainly rather than hidden, because a
+silently wrong calendar is worse for your model than a labelled uncertain one.
+
+### Bulk export
+
+```bash
+curl -H "Authorization: Bearer ssd_live_..." \
+  "https://api.hazeydata.ai/ssd/v1/export?format=csv&state=TX&school_year=2026-2027"
+```
+
+---
+
+### Access
+
+Full access is **$99/month flat** — every district, every day, JSON and CSV, updated daily.
+Price locked at signup.
 
 ### Links
 
 - Website — https://schoolschedulesdatabase.com
-- API sample — https://schoolschedulesdatabase.com/sample.json
+- API docs — https://schoolschedulesdatabase.com/api/
+- For agents — https://schoolschedulesdatabase.com/llms.txt
 - X — https://x.com/SchoolSchedDB
 - Instagram — https://instagram.com/SchoolSchedDB
 
-*Confirmed dates are printed solid. Estimated dates are always labeled. Weekends are always certain.*
+*Not affiliated with any school district or the Department of Education.*
