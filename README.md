@@ -57,8 +57,11 @@ curl -H "Authorization: Bearer ssd_live_..." \
 }
 ```
 
-District IDs are `{STATE}_{NCES_ID}`. `is_in_session` is a number from 0 to 1 — half days are
-`0.5` — so students in session is `enrollment × is_in_session`.
+District IDs are `{STATE}_{NCES_ID}`. `is_in_session` is `1` (full day), `0.5` (half day),
+`0` (no school) — or **`-1`, the no-basis sentinel**: no basis has been established for that
+day, which is *we don't know*, never *closed*. For in-session rows, students in session is
+`enrollment × is_in_session`; **never sum `is_in_session` across days** — count days where it
+is `> 0` instead, or `-1` rows will subtract from your total.
 
 ---
 
@@ -68,10 +71,11 @@ District IDs are `{STATE}_{NCES_ID}`. `is_in_session` is a number from 0 to 1 �
 
 | `source_method` | Meaning |
 |---|---|
-| `observed` · `official_calendar_pdf_verified` · `r1_extract_driver` · `human_anchor_email` | Read from the district's own published calendar |
+| `observed` · `official_calendar_pdf_verified` · `r1_extract_driver` · `annotation_extract` · `human_anchor_email` | Read from the district's own published calendar |
 | `deterministic` | Derived by rule — weekends and fixed holidays |
-| `legacy` | Carried forward from an earlier collection |
+| `legacy` | Carried forward from an earlier collection — treat as estimated |
 | `inferred` · `state_median_imputation` | **Estimated.** Treat as a guess and filter on `confidence` |
+| `unresolved` | **No basis** — always `is_in_session = -1`, `day_type = "UNKNOWN"`, `confidence = 0.0`. An honest "we don't know" |
 
 Most 2026–27 dates are currently estimated. That is stated plainly rather than hidden, because a
 silently wrong calendar is worse for your model than a labelled uncertain one.
