@@ -9,8 +9,8 @@ came from* so your models know how much to trust the feature.
 
 ### What it is
 
-- **Day-level, every US district** — ~12,000 districts across 49 states + DC, one row per
-  district per day.
+- **Day-level, every US district** — 13,703 districts across 55 jurisdictions: the 50
+  states, DC, and four US territories. One row per district per day.
 - **Three school years** — 2024–25 through 2026–27, accumulating. School calendars vanish from
   the web when the year ends; this is the archive of what they said.
 - **Honest by design** — every row carries `source_method` and a `confidence` score. Estimates
@@ -74,7 +74,7 @@ is `> 0` instead, or `-1` rows will subtract from your total.
 | `observed` · `official_calendar_pdf_verified` · `r1_extract_driver` · `annotation_extract` · `human_anchor_email` | Read from the district's own published calendar |
 | `deterministic` | Derived by rule — weekends and fixed holidays |
 | `legacy` | Carried forward from an earlier collection — treat as estimated |
-| `inferred` · `state_median_imputation` | **Estimated.** Treat as a guess and filter on `confidence` |
+| `inferred` · `state_median_imputation` | **Estimated.** Treat as a guess — filter on `source_method`, **not** on `confidence` |
 | `unresolved` | **No basis** — always `is_in_session = -1`, `day_type = "UNKNOWN"`, `confidence = 0.0`. An honest "we don't know" |
 
 Most 2026–27 dates are currently estimated. That is stated plainly rather than hidden, because a
